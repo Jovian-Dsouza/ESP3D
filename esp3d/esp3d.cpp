@@ -26,9 +26,6 @@
 */
 #include "esp3d.h"
 #include <EEPROM.h>
-#ifdef ARDUINO_ARCH_ESP8266
-#include <FS.h>
-#endif
 #ifndef FS_NO_GLOBALS
 #define FS_NO_GLOBALS
 #endif
@@ -248,18 +245,18 @@ void Esp3D::begin(uint16_t startdelayms, uint16_t recoverydelayms)
     if (WiFi.getMode() != WIFI_AP) {
         WiFi.scanNetworks (true);
     }
-#endif
+#endif   
     LOG ("Setup Done\r\n");
+
+//////////////Wifi Printing//////////
+loadSDcard();
+////////////////////////////////////
+  
 }
 
 //Process which handle all input
 void Esp3D::process()
 {
-#ifdef ARDUINO_ARCH_ESP8266
-#ifdef MDNS_FEATURE
-    wifi_config.mdns.update();
-#endif
-#endif
 #if !defined(ASYNCWEBSERVER)
 //web requests for sync
     web_interface->web_server.handleClient();
@@ -344,5 +341,8 @@ void Esp3D::process()
     }
 #endif
 //todo use config
+//////////////Wifi Printing//////////
+    PrintLoop();
+/////////////////////////////////////    
     CONFIG::wait(0);
 }

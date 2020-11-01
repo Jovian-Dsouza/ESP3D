@@ -36,6 +36,79 @@ extern void SDFile_serial_upload();
 extern WebSocketsServer * socket_server;
 extern void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t length);
 
+////////////////////////////////////////////////////////////////
+extern void handleIndex();
+extern void handleFileUpload();
+extern void handlePrint();
+extern void handlePercent();
+extern void printloop();
+extern void handleRedirectSD();
+extern void loadSDcard();
+
+//void lcd(String string);
+void Stop();
+void countLines();
+void PrintLoop();
+
+const char SDcard_page[] PROGMEM = R"=====(
+<!DOCTYPE html>
+<html>
+<body>
+
+<div id="demo">
+<h1>Wireless Print</h1>
+  <form enctype="multipart/form-data" action="/SDcard/fileUpload" method="POST">
+    <input type="hidden" name="MAX_FILE_SIZE" value="100000">
+    Choose a file to upload: <input name="file" type="file"><br>
+    <input type="submit" value="Upload">
+  </form>
+  
+  <button type="button" onclick="sendData(0)">Print</button>
+  <button type="button" onclick="sendData(1)">Pause</button>
+  <button type="button" onclick="sendData(2)">Resume</button>
+  <button type="button" onclick="sendData(3)">Stop</button><br>
+    
+</div>
+
+<div>
+  Print % : <span id="printPercent">0</span><br>
+  Print Status : <span id="printState">NA</span>
+</div>
+<script>
+function sendData(printStatus) {
+  var xhttp = new XMLHttpRequest();
+  xhttp.onreadystatechange = function() {
+    if (this.readyState == 4 && this.status == 200) {
+      document.getElementById("printState").innerHTML =
+      this.responseText;
+    }
+  };
+  xhttp.open("GET", "SDcard/print?state="+printStatus, true);
+  xhttp.send();
+}
+
+setInterval(function() {
+  // Call a function repetatively with 2 Second interval
+   getData();
+}, 2000); //2000mSeconds update rate
+
+function getData() {
+  var xhttp = new XMLHttpRequest();
+  xhttp.onreadystatechange = function() {
+    if (this.readyState == 4 && this.status == 200) {
+      document.getElementById("printPercent").innerHTML =
+      this.responseText;
+    }
+  };
+  xhttp.open("GET", "SDcard/readPercent", true);
+  xhttp.send();
+}
+</script>
+</body>
+</html>
+)=====";
+////////////////////////////////////////////////////////////////
+
 #ifdef SSDP_FEATURE
 extern void handle_SSDP ();
 #endif

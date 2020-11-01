@@ -19,7 +19,7 @@
 */
 
 //version and sources location
-#define FW_VERSION "2.1.1.b7"
+#define FW_VERSION "2.1.0.b32"
 #define REPOSITORY "https://github.com/luc-github/ESP3D"
 
 //Customize ESP3D ////////////////////////////////////////////////////////////////////////
@@ -36,16 +36,10 @@
 //like ESP_XXXXXX (eg:ESP_028E41) to avoid overlap if several ESP3D
 #define ESP_HOST_NAME ESP_DEFAULT_NAME
 
-//To allow webupdate using small updater
-//#define USE_AS_UPDATER_ONLY
 
 //FEATURES - comment to disable //////////////////////////////////////////////////////////
 
-//WEB_UPDATE_FEATURE: allow to flash fw using web UI
-#define WEB_UPDATE_FEATURE
-
-#ifndef USE_AS_UPDATER_ONLY
-//Do we use async webserver or not (currntly deprecated do not enable it yet)
+//Do we use async webserver or not
 //#define ASYNCWEBSERVER
 
 //SERIAL_COMMAND_FEATURE: allow to send command by serial
@@ -68,10 +62,13 @@
 #define SSDP_FEATURE
 
 //NETBIOS_FEATURE: this feature is a discovery protocol, supported on Windows out of the box
-//#define NETBIOS_FEATURE
+#define NETBIOS_FEATURE
 
 //CAPTIVE_PORTAL_FEATURE: In SoftAP redirect all unknow call to main page
 #define CAPTIVE_PORTAL_FEATURE
+
+//WEB_UPDATE_FEATURE: allow to flash fw using web UI
+#define WEB_UPDATE_FEATURE
 
 //RECOVERY_FEATURE: allow to use GPIO2 pin as hardware reset for EEPROM, add 8s to boot time to let user to jump GPIO2 to GND
 //#define RECOVERY_FEATURE
@@ -93,7 +90,7 @@
 
 //TIMESTAMP_FEATURE: Time stamp feature on direct SD  files
 //#define TIMESTAMP_FEATURE
-#endif //USE_AS_UPDATER_ONLY
+
 //Extra features /////////////////////////////////////////////////////////////////////////
 
 //Workaround for Marlin 2.X coldstart
@@ -131,7 +128,7 @@
 #define OLED_DISPLAY_SSD1306  // OLED Display Type: SSD1306(OLED_DISPLAY_SSD1306) / SH1106(OLED_DISPLAY_SH1106), comment this line out to disable oled
 #define OLED_PIN_SDA  4  //5 //SDA;  // i2c SDA Pin
 #define OLED_PIN_SCL  15  //4 //SCL;  // i2c SCL Pin
-#define OLED_ADDR   0x3c
+#define OLED_ADDR	0x3c
 #define HELTEC_EMBEDDED_PIN 16 //0 to disable
 #define OLED_FLIP_VERTICALY 1 //0 to disable
 #endif
@@ -139,16 +136,13 @@
 
 //Supported FW /////////////////////////////////////////////////////////////
 #define UNKNOWN_FW 0
-#define REPETIER4DV 1
-#define MARLIN      2
-#define MARLINKIMBRA        3
-#define SMOOTHIEWARE    4
-#define REPETIER        5
-#define GRBL        6
+#define REPETIER4DV	1
+#define MARLIN		2
+#define MARLINKIMBRA		3
+#define SMOOTHIEWARE	4
+#define REPETIER		5
+#define GRBL		6
 #define MAX_FW_ID 6
-
-//For FW which has issue with checksum or not handling M110 properly///////
-//#define DISABLE_SERIAL_CHECKSUM
 
 //Do not Edit after this line //////////////////////////////////////////////
 
@@ -158,7 +152,6 @@
 //#define DEBUG_OUTPUT_SPIFFS
 //#define DEBUG_OUTPUT_SERIAL
 //#define DEBUG_OUTPUT_TCP
-//#define DEBUG_OUTPUT_SOCKET
 
 //Sanity check
 #ifndef SDCARD_FEATURE
@@ -169,7 +162,6 @@
 
 #if defined(ASYNCWEBSERVER)
 #define ESP_USE_ASYNC true
-#error it no more supported
 #else
 #define ESP_USE_ASYNC false
 #endif
@@ -217,14 +209,6 @@ using fs::File;
 //WEBHOST_SDCARD_FEATURE : to use SDCard to host webpages
 //NOT YET IMPLEMENTED!!! Keep it as TODO
 //#define WEBHOST_SDCARD_FEATURE
-
-#ifdef DEBUG_OUTPUT_SOCKET
-extern void log_socket(const char *format, ...);
-extern const char * pathToFileName(const char * path);
-#define log_esp3d(format, ...) log_socket("\n[ESP3D][%s:%u] %s(): " format "\n", pathToFileName(__FILE__), __LINE__, __FUNCTION__, ##__VA_ARGS__)
-#else
-#define log_esp3d(format, ...)
-#endif
 
 #ifdef DEBUG_ESP3D
 #ifdef DEBUG_OUTPUT_SPIFFS
@@ -306,54 +290,53 @@ typedef enum {
 
 
 //flags
-#define AP_MODE         1
-#define CLIENT_MODE     2
-#define DHCP_MODE       1
-#define STATIC_IP_MODE      2
+#define AP_MODE			1
+#define CLIENT_MODE		2
+#define DHCP_MODE		1
+#define STATIC_IP_MODE		2
 
 //position in EEPROM
 //AP mode = 1; Station client mode = 2
-#define EP_WIFI_MODE            0    //1 byte = flag
-#define EP_STA_SSID             1    //33 bytes 32+1 = string  ; warning does not support multibyte char like chinese
-#define EP_STA_PASSWORD         34   //65 bytes 64 +1 = string ;warning does not support multibyte char like chinese
-#define EP_STA_IP_MODE          99   //1 byte = flag
-#define EP_STA_IP_VALUE         100  //4  bytes xxx.xxx.xxx.xxx
-#define EP_STA_MASK_VALUE           104  //4  bytes xxx.xxx.xxx.xxx
-#define EP_STA_GATEWAY_VALUE            108  //4  bytes xxx.xxx.xxx.xxx
-#define EP_BAUD_RATE            112  //4  bytes = int
-#define EP_STA_PHY_MODE         116  //1 byte = flag
-#define EP_SLEEP_MODE           117  //1 byte = flag
-#define EP_CHANNEL          118 //1 byte = flag
-#define EP_AUTH_TYPE            119 //1 byte = flag
-#define EP_SSID_VISIBLE         120 //1 byte = flag
-#define EP_WEB_PORT         121 //4  bytes = int
-#define EP_DATA_PORT            125 //4  bytes = int
-#define EP_OUTPUT_FLAG          129 //1  bytes = flag
-#define EP_HOSTNAME             130//33 bytes 32+1 = string  ; warning does not support multibyte char like chinese
-#define EP_DHT_INTERVAL         164//4  bytes = int
+#define EP_WIFI_MODE			0    //1 byte = flag
+#define EP_STA_SSID				1    //33 bytes 32+1 = string  ; warning does not support multibyte char like chinese
+#define EP_STA_PASSWORD			34   //65 bytes 64 +1 = string ;warning does not support multibyte char like chinese
+#define EP_STA_IP_MODE			99   //1 byte = flag
+#define EP_STA_IP_VALUE			100  //4  bytes xxx.xxx.xxx.xxx
+#define EP_STA_MASK_VALUE			104  //4  bytes xxx.xxx.xxx.xxx
+#define EP_STA_GATEWAY_VALUE			108  //4  bytes xxx.xxx.xxx.xxx
+#define EP_BAUD_RATE			112  //4  bytes = int
+#define EP_STA_PHY_MODE			116  //1 byte = flag
+#define EP_SLEEP_MODE			117  //1 byte = flag
+#define EP_CHANNEL			118 //1 byte = flag
+#define EP_AUTH_TYPE			119 //1 byte = flag
+#define EP_SSID_VISIBLE			120 //1 byte = flag
+#define EP_WEB_PORT			121 //4  bytes = int
+#define EP_DATA_PORT			125 //4  bytes = int
+#define EP_OUTPUT_FLAG			129 //1  bytes = flag
+#define EP_HOSTNAME				130//33 bytes 32+1 = string  ; warning does not support multibyte char like chinese
+#define EP_DHT_INTERVAL		    164//4  bytes = int
 #define ESP_NOTIFICATION_TYPE   168     //1 byte = flag
-#define ESP_AUTO_NOTIFICATION   170//1  bytes = flag
-#define EP_FREE_BYTE1           171//1  bytes = flag
-#define EP_FREE_INT3            172//4  bytes = int
-#define EP_ADMIN_PWD            176//21  bytes 20+1 = string  ; warning does not support multibyte char like chinese
-#define EP_USER_PWD         197//21  bytes 20+1 = string  ; warning does not support multibyte char like chinese
-#define EP_AP_SSID              218    //33 bytes 32+1 = string  ; warning does not support multibyte char like chinese
-#define EP_AP_PASSWORD          251   //65 bytes 64 +1 = string ;warning does not support multibyte char like chinese
-#define EP_AP_IP_VALUE          316  //4  bytes xxx.xxx.xxx.xxx
-#define EP_AP_MASK_VALUE            320  //4  bytes xxx.xxx.xxx.xxx
-#define EP_AP_GATEWAY_VALUE         324  //4  bytes xxx.xxx.xxx.xxx
-#define EP_AP_IP_MODE           329   //1 byte = flag
-#define EP_AP_PHY_MODE          330  //1 byte = flag
-#define EP_SD_SPEED_DIV         331  //1 byte = flag
+#define EP_FREE_INT2		    169//3  bytes = int
+#define EP_FREE_INT3		    172//4  bytes = int
+#define EP_ADMIN_PWD		    176//21  bytes 20+1 = string  ; warning does not support multibyte char like chinese
+#define EP_USER_PWD		    197//21  bytes 20+1 = string  ; warning does not support multibyte char like chinese
+#define EP_AP_SSID				218    //33 bytes 32+1 = string  ; warning does not support multibyte char like chinese
+#define EP_AP_PASSWORD			251   //65 bytes 64 +1 = string ;warning does not support multibyte char like chinese
+#define EP_AP_IP_VALUE			316  //4  bytes xxx.xxx.xxx.xxx
+#define EP_AP_MASK_VALUE			320  //4  bytes xxx.xxx.xxx.xxx
+#define EP_AP_GATEWAY_VALUE			324  //4  bytes xxx.xxx.xxx.xxx
+#define EP_AP_IP_MODE			329   //1 byte = flag
+#define EP_AP_PHY_MODE			330  //1 byte = flag
+#define EP_SD_SPEED_DIV			331  //1 byte = flag
 #define ESP_NOTIFICATION_TOKEN1 332    //64 bytes 63+1 = string  ; warning does not support multibyte char like chinese
 #define ESP_NOTIFICATION_TOKEN2 396    //64 bytes 63+1 = string  ; warning does not support multibyte char like chinese
-#define EP_DHT_TYPE     460 //1  bytes = flag
-#define EP_TARGET_FW        461 //1  bytes = flag
+#define EP_DHT_TYPE		460 //1  bytes = flag
+#define EP_TARGET_FW		461 //1  bytes = flag
 #define EP_TIMEZONE         462//1  bytes = flag
 #define EP_TIME_ISDST       463//1  bytes = flag
-#define EP_TIME_SERVER1 464//128 bytes 127+1 = string  ; warning does not support multibyte char like chinese  
-#define EP_TIME_SERVER2  593 //128 bytes 127+1 = string  ; warning does not support multibyte char like chinese
-#define EP_TIME_SERVER3  722 //128 bytes 127+1 = string  ; warning does not support multibyte char like chinese
+#define EP_TIME_SERVER1 464//129 bytes 128+1 = string  ; warning does not support multibyte char like chinese  
+#define EP_TIME_SERVER2  593 //129 bytes 128+1 = string  ; warning does not support multibyte char like chinese
+#define EP_TIME_SERVER3  722 //129 bytes 128+1 = string  ; warning does not support multibyte char like chinese
 #define EP_IS_DIRECT_SD   850//1  bytes = flag
 #define EP_PRIMARY_SD   851//1  bytes = flag
 #define EP_SECONDARY_SD   852//1  bytes = flag
@@ -366,35 +349,35 @@ typedef enum {
 #define LAST_EEPROM_ADDRESS 983
 
 //default values
-#define DEFAULT_WIFI_MODE           AP_MODE
-const char DEFAULT_AP_SSID []  PROGMEM =        "ESP3D";
-const char DEFAULT_AP_PASSWORD [] PROGMEM = "12345678";
-const char DEFAULT_STA_SSID []  PROGMEM =       "ESP3D";
-const char DEFAULT_STA_PASSWORD [] PROGMEM =    "12345678";
-const byte DEFAULT_STA_IP_MODE  =               DHCP_MODE;
-const byte DEFAULT_AP_IP_MODE =                 STATIC_IP_MODE;
-const byte DEFAULT_IP_VALUE[]   =           {192, 168, 0, 1};
-const byte DEFAULT_MASK_VALUE[]  =          {255, 255, 255, 0};
-#define DEFAULT_GATEWAY_VALUE               DEFAULT_IP_VALUE
-const long DEFAULT_BAUD_RATE =          115200;
-#define DEFAULT_PHY_MODE            WIFI_PHY_MODE_11G
-#define DEFAULT_SLEEP_MODE          WIFI_MODEM_SLEEP
-#define DEFAULT_CHANNEL             11
-#define DEFAULT_AUTH_TYPE           AUTH_WPA_PSK
-#define DEFAULT_SSID_VISIBLE            1
-#define DEFAULT_MAX_CONNECTIONS         4
-#define DEFAULT_BEACON_INTERVAL         100
-const int DEFAULT_WEB_PORT =            80;
-const int DEFAULT_DATA_PORT =           8888;
-const char DEFAULT_ADMIN_PWD []  PROGMEM =  "admin";
-const char DEFAULT_USER_PWD []  PROGMEM =   "user";
-const char DEFAULT_ADMIN_LOGIN []  PROGMEM =    "admin";
-const char DEFAULT_USER_LOGIN []  PROGMEM = "user";
-const char DEFAULT_TIME_SERVER1 []  PROGMEM =   "1.pool.ntp.org";
-const char DEFAULT_TIME_SERVER2 []  PROGMEM =   "2.pool.ntp.org";
-const char DEFAULT_TIME_SERVER3 []  PROGMEM =   "0.pool.ntp.org";
-#define DEFAULT_TIME_ZONE           0
-#define DEFAULT_TIME_DST            0
+#define DEFAULT_WIFI_MODE			AP_MODE
+const char DEFAULT_AP_SSID []  PROGMEM =		"ESP3D";
+const char DEFAULT_AP_PASSWORD [] PROGMEM =	"12345678";
+const char DEFAULT_STA_SSID []  PROGMEM =		"ESP3D";
+const char DEFAULT_STA_PASSWORD [] PROGMEM =	"12345678";
+const byte DEFAULT_STA_IP_MODE  = 				DHCP_MODE;
+const byte DEFAULT_AP_IP_MODE = 				STATIC_IP_MODE;
+const byte DEFAULT_IP_VALUE[]   =	        {192, 168, 0, 1};
+const byte DEFAULT_MASK_VALUE[]  =	        {255, 255, 255, 0};
+#define DEFAULT_GATEWAY_VALUE   	        DEFAULT_IP_VALUE
+const long DEFAULT_BAUD_RATE =			115200;
+#define DEFAULT_PHY_MODE			WIFI_PHY_MODE_11G
+#define DEFAULT_SLEEP_MODE			WIFI_MODEM_SLEEP
+#define DEFAULT_CHANNEL				11
+#define DEFAULT_AUTH_TYPE			AUTH_WPA_PSK
+#define DEFAULT_SSID_VISIBLE			1
+#define DEFAULT_MAX_CONNECTIONS			4
+#define DEFAULT_BEACON_INTERVAL			100
+const int DEFAULT_WEB_PORT =			80;
+const int DEFAULT_DATA_PORT =			8888;
+const char DEFAULT_ADMIN_PWD []  PROGMEM =	"admin";
+const char DEFAULT_USER_PWD []  PROGMEM =	"user";
+const char DEFAULT_ADMIN_LOGIN []  PROGMEM =	"admin";
+const char DEFAULT_USER_LOGIN []  PROGMEM =	"user";
+const char DEFAULT_TIME_SERVER1 []  PROGMEM =	"1.pool.ntp.org";
+const char DEFAULT_TIME_SERVER2 []  PROGMEM =	"2.pool.ntp.org";
+const char DEFAULT_TIME_SERVER3 []  PROGMEM =	"0.pool.ntp.org";
+#define DEFAULT_TIME_ZONE			0
+#define DEFAULT_TIME_DST			0
 #define DEFAULT_PRIMARY_SD  2
 #define DEFAULT_SECONDARY_SD 1
 #define DEFAULT_DIRECT_SD_CHECK 0
@@ -413,13 +396,11 @@ const int DEFAULT_DHT_INTERVAL = 30;
 #define DEFAULT_NOTIFICATION_TOKEN1 ""
 #define DEFAULT_NOTIFICATION_TOKEN2 ""
 #define DEFAULT_NOTIFICATION_SETTINGS ""
-#define DEFAULT_AUTO_NOTIFICATION_STATE 1
-#define NOTIFICATION_ESP_ONLINE "Hi, %ESP_NAME% is now online at %ESP_IP%"
 
 //Notifications
-#define ESP_PUSHOVER_NOTIFICATION   1
-#define ESP_EMAIL_NOTIFICATION      2
-#define ESP_LINE_NOTIFICATION       3
+#define ESP_PUSHOVER_NOTIFICATION	1
+#define ESP_EMAIL_NOTIFICATION		2
+#define ESP_LINE_NOTIFICATION		3
 
 #ifdef SDCARD_FEATURE
 #define DEFAULT_IS_DIRECT_SD 1
@@ -489,29 +470,29 @@ const uint16_t Setting[][2] = {
 #define FLAG_BLOCK_TCP 0x010
 
 //values
-#define DEFAULT_MAX_WEB_PORT            65001
-#define DEFAULT_MIN_WEB_PORT            1
-#define DEFAULT_MAX_DATA_PORT           65001
-#define DEFAULT_MIN_DATA_PORT           1
+#define DEFAULT_MAX_WEB_PORT			65001
+#define DEFAULT_MIN_WEB_PORT			1
+#define DEFAULT_MAX_DATA_PORT			65001
+#define DEFAULT_MIN_DATA_PORT			1
 
 #define MAX_TRY 2000
 
 //sizes
-#define EEPROM_SIZE             1024 //max is 1024
-#define MAX_SSID_LENGTH             32
-#define MIN_SSID_LENGTH             1
-#define MAX_PASSWORD_LENGTH             64
+#define EEPROM_SIZE				1024 //max is 1024
+#define MAX_SSID_LENGTH				32
+#define MIN_SSID_LENGTH				1
+#define MAX_PASSWORD_LENGTH 			64
 //min size of password is 0 or upper than 8 char
 //so let set min is 0
-#define MIN_PASSWORD_LENGTH             0
-#define MAX_LOCAL_PASSWORD_LENGTH           16
-#define MIN_LOCAL_PASSWORD_LENGTH           1
-#define MAX_DATA_LENGTH             127
-#define MIN_DATA_LENGTH             0
-#define IP_LENGTH               4
-#define INTEGER_LENGTH              4
-#define MAX_HOSTNAME_LENGTH     32
-#define MIN_HOSTNAME_LENGTH     1
+#define MIN_PASSWORD_LENGTH 			0
+#define MAX_LOCAL_PASSWORD_LENGTH 			16
+#define MIN_LOCAL_PASSWORD_LENGTH 			1
+#define MAX_DATA_LENGTH				128
+#define MIN_DATA_LENGTH				0
+#define IP_LENGTH 				4
+#define INTEGER_LENGTH 				4
+#define MAX_HOSTNAME_LENGTH		32
+#define MIN_HOSTNAME_LENGTH		1
 #define WL_MAC_ADDR_LENGTH 6
 
 //EEPROM Version
@@ -549,7 +530,6 @@ public:
     static int DHT_interval;
     static void InitDHT(bool refresh = false);
 #endif
-    static bool is_com_enabled;
     static bool is_locked(byte flag);
     static bool is_direct_sd;
     static bool read_string (int pos, char byte_buffer[], int size_max);
@@ -568,7 +548,6 @@ public:
     static void InitDirectSD();
     static void InitPins();
     static bool InitBaudrate(long value = 0);
-    static bool DisableSerial();
     static bool InitExternalPorts();
     static uint8_t GetFirmwareTarget();
     static const char* GetFirmwareTargetName();

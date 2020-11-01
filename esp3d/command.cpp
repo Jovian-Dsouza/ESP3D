@@ -166,7 +166,6 @@ bool COMMAND::execute_command (int cmd, String cmd_params, tpipe output, level_a
     String parameter;
     LOG ("Execute Command\r\n")
     switch (cmd) {
-
     //STA SSID
     //[ESP100]<SSID>[pwd=<admin password>]
     case 100:
@@ -282,7 +281,6 @@ bool COMMAND::execute_command (int cmd, String cmd_params, tpipe output, level_a
                 }
         }
         break;
-#ifndef USE_AS_UPDATER_ONLY
     //AP SSID
     //[ESP105]<SSID>[pwd=<admin password>]
     case 105:
@@ -707,31 +705,12 @@ bool COMMAND::execute_command (int cmd, String cmd_params, tpipe output, level_a
     }
     break;
 #endif
-    //Command delay
-    case 290: {
-        parameter = get_param (cmd_params, "", true);
-#ifdef AUTHENTICATION_FEATURE
-        if (auth_type == LEVEL_GUEST) {
-            ESPCOM::println (INCORRECT_CMD_MSG, output, espresponse);
-            response = false;
-        } else
-#endif
-        {
-            if (parameter.length() != 0) {
-                ESPCOM::println ("Pause", output, espresponse);
-                CONFIG::wait(parameter.toInt());
-                }
-            ESPCOM::println (OK_CMD_MSG, output, espresponse);
-        }
-    }
-    break;
     //display ESP3D EEPROM version detected
     case 300: {
         uint8_t v = CONFIG::get_EEPROM_version();
         ESPCOM::println (String(v).c_str(), output, espresponse);
     }
     break;
-    
     //Get full EEPROM settings content
     //[ESP400]
     case 400: {
@@ -1261,19 +1240,6 @@ bool COMMAND::execute_command (int cmd, String cmd_params, tpipe output, level_a
             ESPCOM::print ( F ("\",\"H\":\"Notifications Settings\",\"M\":\""), output, espresponse);
             ESPCOM::print ( (const char *) CONFIG::intTostr (MIN_NOTIFICATION_SETTINGS_LENGTH), output, espresponse);
             ESPCOM::print ( F("\"}"), output, espresponse);
-            ESPCOM::println (F (","), output, espresponse);
-            //Auto Notification
-            ESPCOM::print (F ("{\"F\":\"network\",\"P\":\""), output, espresponse);
-            ESPCOM::print ( (const char *) CONFIG::intTostr (ESP_AUTO_NOTIFICATION), output, espresponse);
-            ESPCOM::print (F ("\",\"T\":\"B\",\"V\":\""), output, espresponse);
-            if (!CONFIG::read_byte (ESP_AUTO_NOTIFICATION, &bbuf ) ) {
-                ESPCOM::print ("???", output, espresponse);
-            } else {
-                ESPCOM::print ( (const char *) CONFIG::intTostr (bbuf), output, espresponse);
-            }
-            ESPCOM::print (F ("\",\"H\":\"Auto notification\",\"O\":[{\"No\":\"0\"},{\"Yes\":\"1\"}]}"), output, espresponse);
-            
-            
 #endif //NOTIFICATION_FEATURE
         }
 
@@ -1434,11 +1400,6 @@ bool COMMAND::execute_command (int cmd, String cmd_params, tpipe output, level_a
                         CONFIG::InitDHT(true);
                     }
 #endif
-#ifdef NOTIFICATION_FEATURE
-                    if (pos == ESP_AUTO_NOTIFICATION) {
-                        notificationsservice.setAutonotification ((bbuf == 0)? false: true);
-                    }
-#endif
 #if defined(TIMESTAMP_FEATURE)
                     if ( (pos == EP_TIMEZONE) || (pos == EP_TIME_ISDST) || (pos == EP_TIME_SERVER1) || (pos == EP_TIME_SERVER2) || (pos == EP_TIME_SERVER3) ) {
                         CONFIG::init_time_client();
@@ -1556,7 +1517,6 @@ bool COMMAND::execute_command (int cmd, String cmd_params, tpipe output, level_a
         }
     }
     break;
-#endif //USE_AS_UPDATER_ONLY
     //Get ESP current status in plain or JSON
     //[ESP420]<plain>
     case 420: {
@@ -1591,7 +1551,6 @@ bool COMMAND::execute_command (int cmd, String cmd_params, tpipe output, level_a
             }
         }
         break;
-#ifndef USE_AS_UPDATER_ONLY
     //[ESP500]<gcode>
     case 500: { //send GCode with check sum caching right line numbering
         //be sure serial is locked
@@ -1876,7 +1835,6 @@ bool COMMAND::execute_command (int cmd, String cmd_params, tpipe output, level_a
         ESPCOM::println (CONFIG::formatBytes (SPIFFS.usedBytes() ).c_str(), output, espresponse);
 #endif
         break;
-#endif //USE_AS_UPDATER_ONLY
     //get fw version firmare target and fw version
     //[ESP800]<header answer>
     case 800: {
@@ -1930,14 +1888,6 @@ bool COMMAND::execute_command (int cmd, String cmd_params, tpipe output, level_a
 #else
         ESPCOM::print (F ("Sync:"), output, espresponse);
         String sp = String(wifi_config.iweb_port+1);
-        sp += ":";
-        if (WiFi.getMode() == WIFI_STA) {
-             sp += WiFi.localIP().toString();
-        } else if ((WiFi.getMode() == WIFI_AP) || (WiFi.getMode() == WIFI_AP_STA)) {
-             sp += WiFi.softAPIP().toString();
-        } else {
-             sp += "0.0.0.0";
-        }
         ESPCOM::print (sp.c_str(), output, espresponse);
 #endif
 
@@ -1950,7 +1900,6 @@ bool COMMAND::execute_command (int cmd, String cmd_params, tpipe output, level_a
         ESPCOM::println ("", output, espresponse);
     }
     break;
-#ifndef USE_AS_UPDATER_ONLY
     //get fw target
     //[ESP801]<header answer>
     case 801:
@@ -1960,38 +1909,7 @@ bool COMMAND::execute_command (int cmd, String cmd_params, tpipe output, level_a
     case 810:
         web_interface->blockserial = false;
         break;
-    case 900:
-        parameter = get_param (cmd_params, "", true);
-#ifdef AUTHENTICATION_FEATURE
-        if (auth_type == LEVEL_GUEST) {
-            ESPCOM::println (INCORRECT_CMD_MSG, output, espresponse);
-            response = false;
-        }
-#endif
-        if (parameter.length() == 0) {
-            if (CONFIG::is_com_enabled) {
-                ESPCOM::print (F ("ENABLED"), output, espresponse);
-            } else {
-                ESPCOM::print (F ("DISABLED"), output, espresponse);
-            }
-        } else {
-            if (parameter == "ENABLE") {
-                CONFIG::DisableSerial();
-                 if (!CONFIG::InitBaudrate()){
-                     ESPCOM::print (F ("Cannot enable serial communication"), output, espresponse);
-                 } else {
-                     ESPCOM::print (F ("Enable serial communication"), output, espresponse);
-                 }
-            } else if (parameter == "DISABLE") {
-                ESPCOM::print (F ("Disable serial communication"), output, espresponse);
-                CONFIG::DisableSerial();
-            } else {
-                ESPCOM::println (INCORRECT_CMD_MSG, output, espresponse);
-                response = false;
-            }
-        }
-        break;
-#endif //USE_AS_UPDATER_ONLY
+
     default:
         ESPCOM::println (INCORRECT_CMD_MSG, output, espresponse);
         response = false;

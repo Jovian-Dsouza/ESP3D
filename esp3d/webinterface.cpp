@@ -73,8 +73,6 @@
 
 long id_connection = 0;
 
-#ifndef USE_AS_UPDATER_ONLY
-
 uint8_t Checksum(const char * line, uint16_t lineSize)
 {
     uint8_t checksum_val =0;
@@ -98,26 +96,29 @@ bool purge_serial()
     uint8_t buf [51];
     ESPCOM::flush (DEFAULT_PRINTER_PIPE);
     CONFIG::wait (5);
-    log_esp3d("Purge Serial");
+    LOG("Purge Serial\r\n")
     while (ESPCOM::available(DEFAULT_PRINTER_PIPE) > 0 ) {
         if ((millis() - start ) > 2000) {
-            log_esp3d("Purge timeout");
+            LOG("Purge timeout\r\n")
             return false;
         }
         size_t len = ESPCOM::readBytes (DEFAULT_PRINTER_PIPE, buf, 50);
         buf[len] = '\0';
+        LOG("Purge: \r\n************\r\n")
+        LOG((const char *)buf)
+        LOG("\r\n************\r\n")
         if ( ( CONFIG::GetFirmwareTarget() == REPETIER4DV) || (CONFIG::GetFirmwareTarget() == REPETIER) ) {
             String s = (const char *)buf;
             //repetier never stop sending data so no need to wait if have 'wait' or 'busy'
             if((s.indexOf ("wait") > -1) || (s.indexOf ("busy") > -1)) {
                 return true;
             }
-            log_esp3d("Purge interrupted");
+            LOG("Purge interrupted\r\n")
         }
         CONFIG::wait (5);
     }
     CONFIG::wait (0);
-    log_esp3d("Purge done");
+    LOG("Purge done\r\n")
     return true;
 }
 
@@ -147,7 +148,9 @@ uint32_t Get_lineNumber(String & response)
     //remove potential unwished char
     snum.replace("\r", "");
     l = snum.toInt();
-    log_esp3d("Line requested is %d", l);
+    LOG("Line requested is ")
+    LOG(String(l))
+    LOG("\r\n")
     return l;
 }
 
@@ -155,7 +158,11 @@ uint32_t Get_lineNumber(String & response)
 //if newlinenb is NULL no auto correction of line number in case of resend
 bool sendLine2Serial (String &  line, int32_t linenb,  int32_t * newlinenb)
 {
-    log_esp3d ("Send line %d");
+    LOG ("Send line ")
+    LOG (line )
+    LOG ("  NB:")
+    LOG (String(linenb))
+    LOG ("\r\n")
     String line2send;
     String sok = "ok";
     String sresend = "Resend:";
@@ -165,9 +172,6 @@ bool sendLine2Serial (String &  line, int32_t linenb,  int32_t * newlinenb)
     if ( CONFIG::GetFirmwareTarget() == SMOOTHIEWARE) {
         sresend = "rs N";
     }
-#ifdef DISABLE_SERIAL_CHECKSUM
-    linenb = -1;
-#endif
     if (linenb != -1) {
         if ( ( CONFIG::GetFirmwareTarget() == REPETIER4DV) || (CONFIG::GetFirmwareTarget() == REPETIER) ) {
             sok+=" " + String(linenb);
@@ -178,6 +182,9 @@ bool sendLine2Serial (String &  line, int32_t linenb,  int32_t * newlinenb)
     }
     //purge serial as nothing is supposed to interfere with upload
     purge_serial();
+    LOG ("Send line ")
+    LOG (line2send )
+    LOG ("\r\n")
     //send line
     ESPCOM::println (line2send, DEFAULT_PRINTER_PIPE);
     ESPCOM::flush(DEFAULT_PRINTER_PIPE);
@@ -202,16 +209,19 @@ bool sendLine2Serial (String &  line, int32_t linenb,  int32_t * newlinenb)
                 sbuf[len] = '\0';
                 //use string because easier to handle and allow to re-assemble cutted answer
                 response += (const char*) sbuf;
+                LOG ("Response:\r\n************\r\n")
+                LOG (response)
+                LOG ("\r\n************\r\n")
                 //in that case there is no way to know what is the right number to use and so send should be failed
                 if (( ( CONFIG::GetFirmwareTarget() == REPETIER4DV) || (CONFIG::GetFirmwareTarget() == REPETIER) ) && (response.indexOf ("skip") != -1)) {
-                    log_esp3d ("Wrong line requested");
+                    LOG ("Wrong line requested\r\n")
                     count = 5;
                 }
                 //it is resend ?
                 int pos = response.indexOf (sresend);
                 //be sure we get full line to be able to process properly
                 if (( pos > -1) && (response.lastIndexOf("\n") > pos)) {
-                    log_esp3d ("Resend detected");
+                    LOG ("Resend detected\r\n")
                     uint32_t line_number = Get_lineNumber(response);
                     //this part is only if have newlinenb variable
                     if (newlinenb != nullptr) {
@@ -222,18 +232,20 @@ bool sendLine2Serial (String &  line, int32_t linenb,  int32_t * newlinenb)
                     } else {
                         //the line requested is not the current one so we stop
                         if (line_number !=linenb) {
-                            log_esp3d ("Wrong line requested");
+                            LOG ("Wrong line requested\r\n")
                             count = 5;
                         }
                     }
                     count++;
                     if (count > 5) {
                         free(sbuf);
-                        log_esp3d ("Exit too many resend or wrong line");
+                        LOG ("Exit too many resend or wrong line\r\n")
                         return false;
                     }
                     purge_serial();
-                    log_esp3d ("Resend x%d", count);
+                    LOG ("Resend ")
+                    LOG (String(count))
+                    LOG ("\r\n")
                     response="";
                     ESPCOM::println (line2send, DEFAULT_PRINTER_PIPE);
                     ESPCOM::flush (DEFAULT_PRINTER_PIPE);
@@ -243,7 +255,7 @@ bool sendLine2Serial (String &  line, int32_t linenb,  int32_t * newlinenb)
                 } else {
                     if ( (response.indexOf (sok) > -1) ) { //we have ok so it is done
                         free(sbuf);
-                        log_esp3d ("Got ok");
+                        LOG ("Got ok\r\n")
                         purge_serial();
                         return true;
                     }
@@ -252,15 +264,127 @@ bool sendLine2Serial (String &  line, int32_t linenb,  int32_t * newlinenb)
             }
             //no answer or over buffer  exit
             if ( (millis() - timeout > 2000) ||  (response.length() >200)) {
-                log_esp3d("Time out");
+                LOG ("Time out\r\n")
                 done = true;
             }
             CONFIG::wait (5);
         }
     }
-    log_esp3d ("Send line error");
+    LOG ("Send line error\r\n")
     return false;
 }
+
+
+//////////////////////////////////////////////////
+
+bool sendLine2Serial (String &  line)
+{
+    String line2send;
+    String sok = "ok";
+    String sresend = "Resend:";
+    
+    line2send = line;
+    //purge serial as nothing is supposed to interfere with upload
+    purge_serial();
+    
+    //send line
+    ESPCOM::println (line2send, DEFAULT_PRINTER_PIPE);
+    ESPCOM::flush(DEFAULT_PRINTER_PIPE);
+    //check answer
+    if (wait_for_data(2000) > 0 ) {
+        bool done = false;
+        uint32_t timeout = millis();
+        uint8_t count = 0;
+        //got data check content
+        String response ;
+        while (!done) {
+            size_t len = ESPCOM::available(DEFAULT_PRINTER_PIPE);
+            //get size of buffer
+            if (len > 0) {
+                uint8_t * sbuf = (uint8_t *)malloc(len+1);
+                if(!sbuf){
+                    return false;
+                }
+                //read buffer
+                ESPCOM::readBytes (DEFAULT_PRINTER_PIPE, sbuf, len);
+                //convert buffer to zero end array
+                sbuf[len] = '\0';
+                //use string because easier to handle and allow to re-assemble cutted answer 
+                response += (const char*) sbuf;
+                LOG ("Response:\r\n************\r\n")
+                LOG (response)
+                LOG ("\r\n************\r\n")
+                //in that case there is no way to know what is the right number to use and so send should be failed
+                if (( ( CONFIG::GetFirmwareTarget() == REPETIER4DV) || (CONFIG::GetFirmwareTarget() == REPETIER) ) && (response.indexOf ("skip") != -1)) {
+                    LOG ("Wrong line requested\r\n")
+                    count = 5;  
+                }
+                //it is resend ?
+                int pos = response.indexOf (sresend);
+                //be sure we get full line to be able to process properly
+                if (( pos > -1) && (response.lastIndexOf("\n") > pos)){
+                    LOG ("Resend detected\r\n")
+                    uint32_t line_number = Get_lineNumber(response);
+                    //this part is only if have newlinenb variable
+        
+                    count++;
+                    if (count > 5) {
+                        free(sbuf);
+                        LOG ("Exit too many resend or wrong line\r\n")
+                        return false;
+                    }
+                    purge_serial();
+                    LOG ("Resend ")
+                    LOG (String(count))
+                    LOG ("\r\n")
+                    response="";
+                    ESPCOM::println (line2send, DEFAULT_PRINTER_PIPE);
+                    ESPCOM::flush (DEFAULT_PRINTER_PIPE);
+                    wait_for_data(1000);
+                    timeout = millis();
+                    
+                } else {
+                    if ( (response.indexOf (sok) > -1) ) { //we have ok so it is done
+                        free(sbuf);
+                    LOG ("Got ok\r\n")
+                    purge_serial();
+                    return true;
+                    }
+                }
+                free(sbuf);
+            }
+            //no answer or over buffer  exit
+            if ( (millis() - timeout > 2000) ||  (response.length() >200)){ 
+                LOG ("Time out\r\n")
+                done = true;
+            }
+            CONFIG::wait (5);
+        }
+    }
+    LOG ("Send line error\r\n") 
+    return false;
+}
+
+void SerialPrint(String & line ,String & response ,bool & okFound, unsigned long & currentLine){
+   
+   if(okFound == true){
+      if(!((line.startsWith("(")) || (line.startsWith(";")) || (line.length() == 0))) {
+          currentLine++;
+          String line2send = line;
+          //purge_serial();    
+          ESPCOM::println (line2send, DEFAULT_PRINTER_PIPE);
+          //ESPCOM::flush(DEFAULT_PRINTER_PIPE);
+          okFound = false;
+      }  
+    }
+    
+    else
+    { 
+      response = Serial.readStringUntil('\n');
+      if (response.startsWith("ok")) okFound = true;
+    } 
+}
+/////////////////////////////////////////////////////
 
 //send M29 / M30 command to close file on SD////////////////////////////
 void CloseSerialUpload (bool iserror, String & filename, int32_t linenb)
@@ -292,7 +416,7 @@ void CloseSerialUpload (bool iserror, String & filename, int32_t linenb)
     purge_serial();
     web_interface->blockserial = false;
 }
-#endif //USE_AS_UPDATER_ONLY
+
 
 //constructor
 WEBINTERFACE_CLASS::WEBINTERFACE_CLASS (int port) : web_server (port)
@@ -357,7 +481,16 @@ WEBINTERFACE_CLASS::WEBINTERFACE_CLASS (int port) : web_server (port)
     web_server.on ("/command_silent", HTTP_ANY, handle_web_command_silent);
     //Serial SD management
     web_server.on ("/upload_serial", HTTP_ANY, handle_serial_SDFileList, SDFile_serial_upload);
-
+    ///////////////////////Wireless Printing///////////////////////////////////
+    
+    web_server.on("/SDcard", handleIndex);
+    
+    web_server.on("/SDcard/fileUpload", HTTP_POST, handleRedirectSD , handleFileUpload);
+    
+    web_server.on("/SDcard/print", HTTP_GET, handlePrint);
+    web_server.on("/SDcard/readPercent", HTTP_GET, handlePercent);
+    /////////////////////////////////////////////////////////////
+  
     blockserial = false;
     restartmodule = false;
     _head = NULL;

@@ -65,15 +65,8 @@ long ESPCOM::readBytes (tpipe output, uint8_t * sbuf, size_t len)
 {
     switch (output) {
 #ifdef USE_SERIAL_0
-    case SERIAL_PIPE:{
-        long l = Serial.readBytes(sbuf,len);
-#ifdef DEBUG_OUTPUT_SOCKET
-        if(socket_server){
-            socket_server->sendBIN(ESPCOM::current_socket_id,sbuf,l);
-            }
-#endif
-        return l;
-    }
+    case SERIAL_PIPE:
+        return Serial.readBytes(sbuf,len);
         break;
 #endif
 #ifdef USE_SERIAL_1
@@ -250,11 +243,6 @@ void ESPCOM::print (const char * data, tpipe output, ESPResponseStream  *espresp
     switch (output) {
 #ifdef USE_SERIAL_0
     case SERIAL_PIPE:
-#ifdef DEBUG_OUTPUT_SOCKET
-        if(socket_server){
-            socket_server->sendBIN(ESPCOM::current_socket_id,(const uint8_t*)data,strlen(data));
-        }
-#endif
         Serial.print (data);
         break;
 #endif
@@ -300,9 +288,7 @@ void ESPCOM::print (const char * data, tpipe output, ESPResponseStream  *espresp
 #if defined(ASYNCWEBSERVER)
 //Todo
 #else
-        if(socket_server){
-            socket_server->sendBIN(current_socket_id,(const uint8_t *)data,strlen(data));
-        }
+        socket_server->sendBIN(current_socket_id,(const uint8_t *)data,strlen(data));
 #endif
     }
     break;
@@ -420,11 +406,7 @@ bool ESPCOM::processFromSerial (bool async)
         }
 #else
         if (!CONFIG::is_locked(FLAG_BLOCK_WSOCKET) && socket_server) {
-#ifndef DEBUG_OUTPUT_SOCKET
-            if(socket_server){
-                socket_server->sendBIN(current_socket_id,sbuf,len);
-                }
-#endif
+            socket_server->sendBIN(current_socket_id,sbuf,len);
         }
 #endif
 

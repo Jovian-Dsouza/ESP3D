@@ -92,22 +92,9 @@ bool Wait4Answer(TSecureClient & client, const char * linetrigger, const char * 
     return false;
 }
 
-bool NotificationsService::sendAutoNotification(const char * msg) 
-{ 
-    if ((WiFi.getMode() == WIFI_AP) || (!_started) || (!_autonotification))return false;
-    String msgtpl = msg;
-    //check if has variable to change
-    if (msgtpl.indexOf("%") != -1) {
-    msgtpl.replace("%ESP_IP%", WiFi.localIP().toString().c_str());
-    msgtpl.replace("%ESP_NAME%", wifi_config.get_hostname());
-    }
-    return sendMSG("ESP3D Notification", msgtpl.c_str());
-}
-
 NotificationsService::NotificationsService()
 {
     _started = false;
-    _autonotification = false;
     _notificationType = 0;
     _token1 = "";
     _token1 = "";
@@ -424,9 +411,7 @@ bool NotificationsService::begin()
         return false;
         break;
     }
-    if (CONFIG::read_byte (ESP_AUTO_NOTIFICATION, &bbuf ) ) {
-        _autonotification = (bbuf == 0) ? false: true;
-    }
+
     if (!res) {
         end();
     }

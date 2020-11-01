@@ -29,9 +29,7 @@
 extern "C" {
 #include "user_interface.h"
 }
-#endif
-#ifdef ARDUINO_ARCH_ESP32
-#include <esp_ota_ops.h>
+#else
 #include "Update.h"
 #include "esp_wifi.h"
 #endif
@@ -51,7 +49,7 @@ extern DHTesp dht;
 
 uint8_t CONFIG::FirmwareTarget = UNKNOWN_FW;
 byte CONFIG::output_flag = DEFAULT_OUTPUT_FLAG;
-bool  CONFIG::is_com_enabled = false;
+
 #ifdef DHT_FEATURE
 byte CONFIG::DHT_type  = DEFAULT_DHT_TYPE;
 int CONFIG::DHT_interval = DEFAULT_DHT_INTERVAL;
@@ -164,21 +162,6 @@ void CONFIG::InitDirectSD()
 
 }
 
-bool CONFIG::DisableSerial()
-{
-#ifdef USE_SERIAL_0
-Serial.end();
-#endif
-#ifdef USE_SERIAL_1
-Serial1.end();
-#endif
-#ifdef USE_SERIAL_2
-Serial2.end();
-#endif
-CONFIG::is_com_enabled = false;
-return true;
-}
-
 bool CONFIG::InitBaudrate(long value)
 {
     long baud_rate = 0;
@@ -231,7 +214,6 @@ bool CONFIG::InitBaudrate(long value)
 
     wifi_config.baud_rate = baud_rate;
     delay (100);
-    CONFIG::is_com_enabled = true;
     return true;
 }
 
@@ -911,9 +893,6 @@ bool CONFIG::reset_config()
     if (!CONFIG::write_string (ESP_NOTIFICATION_SETTINGS, DEFAULT_NOTIFICATION_SETTINGS ) ) {
         return false;
     }
-    if (!CONFIG::write_byte (ESP_AUTO_NOTIFICATION, DEFAULT_AUTO_NOTIFICATION_STATE) ) {
-        return false;
-    }
 #endif
 
     return set_EEPROM_version(EEPROM_CURRENT_VERSION);
@@ -1049,13 +1028,13 @@ void CONFIG::print_config (tpipe output, bool plaintext, ESPResponseStream  *esp
     } else {
         ESPCOM::print (F ("Available Size for update: "), output, espresponse);
     }
-     size_t flashsize = 0;
-    if (esp_ota_get_running_partition()) {
-        const esp_partition_t* partition = esp_ota_get_next_update_partition(NULL);
-        if (partition) {
-            flashsize = partition->size;
-        }
-    } 
+    uint32_t  flashsize = ESP.getFlashChipSize();
+    //Not OTA on 2Mb board per spec
+    if (flashsize > 0x20000) {
+        flashsize = 0x140000;
+    } else {
+        flashsize = 0x0;
+    }
     ESPCOM::print (formatBytes (flashsize).c_str(), output, espresponse);
     if (!plaintext) {
         ESPCOM::print (F ("\","), output, espresponse);
@@ -1562,7 +1541,7 @@ void CONFIG::print_config (tpipe output, bool plaintext, ESPResponseStream  *esp
         }
 #else
             //go next record
-            station = STAILQ_NEXT (station, next);
+            station = STAILQ_NEXT (station,	next);
         }
         wifi_softap_free_station_info();
 #endif
@@ -1979,50 +1958,3 @@ void CONFIG::print_config (tpipe output, bool plaintext, ESPResponseStream  *esp
         ESPCOM::print (F ("\n"), output, espresponse);
     }
 }
-
-#ifdef DEBUG_OUTPUT_SOCKET
-#if defined(ARDUINO_ARCH_ESP8266)
-#define NODEBUG_WEBSOCKETS
-#include <WebSocketsServer.h>
-extern WebSocketsServer * socket_server;
-const char * pathToFileName(const char * path)
-{
-    size_t i = 0;
-    size_t pos = 0;
-    char * p = (char *)path;
-    while(*p) {
-        i++;
-        if(*p == '/' || *p == '\\') {
-            pos = i;
-        }
-        p++;
-    }
-    return path+pos;
-}
-#endif //ARDUINO_ARCH_ESP8266 
-
-void log_socket(const char *format, ...){
-    if(socket_server){
-        char loc_buf[255];
-        char * temp = loc_buf;
-        va_list arg;
-        va_list copy;
-        va_start(arg, format);
-        va_copy(copy, arg);
-        size_t len = vsnprintf(NULL, 0, format, arg);
-        va_end(copy);
-        if(len >= sizeof(loc_buf)){
-            temp = new char[len+1];
-            if(temp == NULL) {
-                return;
-            }
-        }
-        len = vsnprintf(temp, len+1, format, arg);
-        socket_server->sendBIN(ESPCOM::current_socket_id,(uint8_t *)temp,strlen(temp));
-        va_end(arg);
-        if(len > 255){
-            delete[] temp;
-        }
-    }
-}
-#endif
